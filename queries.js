@@ -5,7 +5,10 @@ const db = pgp(process.env.DB_URL);
 
 async function getAllPeople(req, res, next) {
     try {
-        const data = await db.any(`SELECT * FROM people`);
+        const people = await db.any(`SELECT * FROM people`);
+
+        const data = await populateFriends(people);
+
         res.status(200).json({
             status: 'OK',
             data,
@@ -19,7 +22,8 @@ async function getAllPeople(req, res, next) {
 async function getPeople(req, res, next) {
     try {
         const id = parseInt(req.params.id);
-        const data = await db.one(`SELECT * FROM people WHERE id=$1`, id);
+        const people = await db.one(`SELECT * FROM people WHERE id=$1`, id);
+        const data = await populateFriends(people);
         res.status(200).json({
             status: 'OK',
             data,
@@ -69,11 +73,30 @@ async function removePeople(req, res, next) {
     }
 }
 
+async function populateFriends(data) {
+    if(data.length > 0) {
+        for(let i=0; i<data.length; i++) {
+            data[i].friends = [];
+            const friends = await db.any('SELECT friend_id FROM friends WHERE people_id=$1', data[i].id);
+            for(let j=0; j<friends.length; j++) {
+                data[i].friends.push(friends[j].friend_id);
+            }
+        }
+        return data;
+    } else {
+        data.friends = [];
+        const friends = await db.any('SELECT friend_id FROM friends WHERE people_id=$1', data.id);
+        for(let j=0; j<friends.length; j++) {
+            data.friends.push(friends[j].friend_id);
+        }
+        return data;
+    }
+}
+
 export {
     getAllPeople,
     getPeople,
     createPeople,
     updatePeople,
-    removePeople,
-    // getAllFriends
+    removePeople
 }
