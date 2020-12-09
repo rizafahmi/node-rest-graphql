@@ -98,5 +98,6 @@ export {
     getPeople,
     createPeople,
     updatePeople,
-    removePeople
+    removePeople,
+    db
 }
